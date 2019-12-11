@@ -1,0 +1,101 @@
+---
+title: "Residential_House_Values"
+author: "Ken Furushima"
+date: "12/10/2019"
+output:
+  #pdf_document:
+  #  toc: true
+  #  #toc_depth: 2
+  #  fig_caption: true
+  #  fig_width: 5
+  #  fig_height: 3 
+  html_document:
+    df_print: paged
+    toc: yes
+    toc_float: yes
+editor_options:
+  chunk_output_type: inline
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r echo = F}
+## Library
+library(tidyverse)
+library(magrittr)
+library(readxl)
+library(httr)
+library(gghighlight)
+```
+
+
+# Data Load
+The data is stored in GitHub.
+
+```{r echo = F}
+Average_House <- read.csv("https://raw.githubusercontent.com/kfur006/Residential_House_Values/master/Residential%20House%20Values.csv",
+                          header=T,
+                          stringsAsFactors = F) %>% 
+  mutate(Area = gsub("- ", "", Area)) %>% 
+  gather(Year, Value, -Area) %>% 
+  mutate(Year = gsub("Average.Value.", "", Year),
+         Year = gsub("[.]", " ", Year),
+         Year = paste("01 ", Year),
+         Year = as.Date(Year, format = "%d %B %Y"),
+         Value = gsub("[$]", "", Value),
+         Value = gsub("[,]", "", Value),
+         Value = as.numeric(Value)
+  ) %>% 
+  rename(Date = Year)
+
+
+LEED <- read.csv("https://raw.githubusercontent.com/kfur006/Residential_House_Values/master/LEED%20Industry%20and%20Region.csv",
+                 header=T,
+                 stringsAsFactors = F) %>%
+  mutate(Date = as.Date(paste("20", Quarter, "-30", sep = ""), format = "%Y-%B-%d")) %>%
+  select(-Quarter)
+  
+
+```
+
+# Plots
+## Initial Plots
+```{r echo = F}
+
+Average_House %>% #filter(str_detect(Area, "New Zealand")) %>% 
+  ggplot(aes(x = Date, y = Value, col = Area)) +
+  geom_line(size = 2) +
+  scale_x_date(date_labels = "%m-%Y") +
+  theme(legend.position="top") +
+  guides(col = guide_legend(ncol = 12))
+
+
+LEED %>% filter(str_detect(Industry, "All")) %>% 
+  ggplot(aes(x = Date, y = Total.filled.jobs, col = Region)) +
+  geom_line(size = 2) +
+  scale_x_date(date_labels = "%m-%Y") +
+  theme(legend.position="top") +
+  guides(col = guide_legend(ncol = 12))
+
+names(LEED)
+LEED %>% filter(str_detect(Industry, "All")) %>% 
+  ggplot(aes(x = Date, y = Jobs.creation, col = Region)) +
+  geom_line(size = 2) +
+  scale_x_date(date_labels = "%m-%Y") +
+  theme(legend.position="top") +
+  guides(col = guide_legend(ncol = 12))
+
+unique(LEED$Region)
+LEED %>% filter(!str_detect(Region, "Auckland"),
+                !str_detect(Industry, "All")) %>% 
+  ggplot(aes(x = Date, y = Jobs.creation, col = Industry)) +
+  geom_line(size = 2) +
+  scale_x_date(date_labels = "%m-%Y") +
+  theme(legend.position="top") +
+  guides(col = guide_legend(ncol = 12)) +
+  facet_wrap(~Region)
+
+```
+
